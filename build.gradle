@@ -1,0 +1,124 @@
+buildscript {
+  repositories {
+    mavenLocal()
+    mavenCentral()
+    jcenter()
+  }
+
+  dependencies {
+    classpath "org.elasticsearch.gradle:build-tools:5.6.3"
+    classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3"
+  }
+}
+
+plugins {
+  id "de.undercouch.download" version "3.2.0"
+}
+
+import de.undercouch.gradle.tasks.download.Download
+
+group = 'org.elasticsearch.plugin.ingest'
+version = '0.0.1-SNAPSHOT'
+
+apply plugin: 'java'
+apply plugin: 'elasticsearch.esplugin'
+apply plugin: 'idea'
+apply plugin: 'maven'
+apply plugin: 'signing'
+apply plugin: 'io.codearte.nexus-staging'
+
+// this is temporal and will be fixed in 6.0
+ext.projectSubstitutions = [:]
+
+// license of this project
+licenseFile = rootProject.file('LICENSE.txt')
+// copyright notices
+noticeFile = rootProject.file('NOTICE.txt')
+
+esplugin {
+  name 'ingest-opennlp'
+  description 'Elasticsearch ingest processor to do named entity extraction using OpenNLP'
+  classname 'org.elasticsearch.plugin.ingest.opennlp.IngestOpennlpPlugin'
+  // license of the plugin, may be different than the above license
+  licenseFile rootProject.file('LICENSE.txt')
+  // copyright notices, may be different than the above notice
+  noticeFile rootProject.file('NOTICE.txt')
+}
+
+// In this section you declare the dependencies for your production and test code
+// Note, the two dependencies are not really needed as the buildscript dependency gets them in already
+// they are just here as an example
+dependencies {
+  compile 'org.elasticsearch:elasticsearch:5.6.3'
+  compile 'org.apache.opennlp:opennlp-tools:1.8.1'
+
+  testCompile 'org.elasticsearch.test:framework:5.6.3'
+}
+
+bundlePlugin {
+  from('src/test/resources/models') {
+    into 'config/'
+  }
+}
+
+integTestCluster {
+  setting 'ingest.opennlp.model.file.names',     'en-ner-persons.bin'
+  setting 'ingest.opennlp.model.file.locations', 'en-ner-locations.bin'
+  setting 'ingest.opennlp.model.file.dates',     'en-ner-dates.bin'
+}
+
+// Set to false to not use elasticsearch checkstyle rules
+checkstyleMain.enabled = true
+checkstyleTest.enabled = true
+
+// FIXME dependency license check needs to be enabled
+dependencyLicenses.enabled = false
+
+// FIXME thirdparty audit needs to be enabled
+thirdPartyAudit.enabled = false
+
+// Uncomment this to skip license header checks
+licenseHeaders.enabled = false
+
+// exlude the models for forbidden API check
+forbiddenPatterns {
+  exclude '**/*.bin'
+}
+
+// download the models before the tests are run, also needed for packaging
+project.afterEvaluate {
+  processTestResources.dependsOn downloadModels
+}
+
+// download the models but dont overwrite existing ones
+task downloadModels {
+  doLast {
+    downloadIfNotExists('http://opennlp.sourceforge.net/models-1.5/en-ner-person.bin',   'en-ner-persons.bin')
+    downloadIfNotExists('http://opennlp.sourceforge.net/models-1.5/en-ner-location.bin', 'en-ner-locations.bin')
+    downloadIfNotExists('http://opennlp.sourceforge.net/models-1.5/en-ner-date.bin',     'en-ner-dates.bin')
+  }
+}
+
+def downloadIfNotExists(String url, String file) {
+  String dir = 'src' + File.separator + 'test' + File.separator + 'resources' + File.separator + 'models'
+  new File(dir).mkdirs()
+  if (new File(dir + File.separator + file).exists() == false) {
+    download {
+      src url
+      dest new File(dir, file)
+    }
+  }
+}
+
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+signing {
+    required { gradle.taskGraph.hasTask("uploadArchives") }
+    sign configurations.archives
+}
+
+task getHomeDir << {
+    println gradle.gradleHomeDir
+}
