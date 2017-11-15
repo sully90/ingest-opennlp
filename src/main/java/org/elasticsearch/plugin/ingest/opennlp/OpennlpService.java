@@ -1,5 +1,21 @@
-package org.elasticsearch.plugin.ingest.opennlp;
+/*
+ * Copyright [2016] [Alexander Reelsen]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 
+package org.elasticsearch.plugin.ingest.opennlp;
 
 import opennlp.tools.namefind.NameFinderME;
 import opennlp.tools.namefind.TokenNameFinderModel;
@@ -25,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * OpenNLP name finders are not thread safe, so we load them via a thread local hack
  */
-public class OpennlpService {
+public class OpenNlpService {
 
     private final Path configDirectory;
     private final Logger logger;
@@ -34,19 +50,19 @@ public class OpennlpService {
     private ThreadLocal<TokenNameFinderModel> threadLocal = new ThreadLocal<>();
     private Map<String, TokenNameFinderModel> nameFinderModels = new ConcurrentHashMap<>();
 
-    public OpennlpService(Path configDirectory, Settings settings) {
+    public OpenNlpService(Path configDirectory, Settings settings) {
         this.logger = Loggers.getLogger(getClass(), settings);
         this.configDirectory = configDirectory;
         this.settings = settings;
     }
 
     public Set<String> getModels() {
-        return IngestOpennlpPlugin.MODEL_FILE_SETTINGS.get(settings).getAsMap().keySet();
+        return IngestOpenNlpPlugin.MODEL_FILE_SETTINGS.get(settings).getAsMap().keySet();
     }
 
-    protected OpennlpService start() {
+    protected OpenNlpService start() {
         StopWatch sw = new StopWatch("models-loading");
-        Map<String, String> settingsMap = IngestOpennlpPlugin.MODEL_FILE_SETTINGS.get(settings).getAsMap();
+        Map<String, String> settingsMap = IngestOpenNlpPlugin.MODEL_FILE_SETTINGS.get(settings).getAsMap();
         for (Map.Entry<String, String> entry : settingsMap.entrySet()) {
             String name = entry.getKey();
             sw.start(name);
@@ -71,7 +87,7 @@ public class OpennlpService {
     public Set<String> find(String content, String field) {
         try {
             if (!nameFinderModels.containsKey(field)) {
-                throw new ElasticsearchException("Could not find field [{}], possible values {}", field, nameFinderModels.keySet());
+                throw new ElasticsearchException("Could not find field [{}], possible values {}", field, nameFinderModels.keySet());
             }
             TokenNameFinderModel finderModel= nameFinderModels.get(field);
             if (threadLocal.get() == null || !threadLocal.get().equals(finderModel)) {

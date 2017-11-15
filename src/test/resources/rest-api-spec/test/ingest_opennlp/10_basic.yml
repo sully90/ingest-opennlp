@@ -1,4 +1,4 @@
-"ingest-opennlp plugin installed":
+"Opennlp plugin installed":
     - do:
         cluster.state: {}
 

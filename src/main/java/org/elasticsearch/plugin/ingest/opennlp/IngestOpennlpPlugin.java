@@ -1,5 +1,5 @@
 /*
- * Copyright [2017] [David Sullivan]
+ * Copyright [2016] [Alexander Reelsen]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ import java.util.Map;
 
 import static org.elasticsearch.common.settings.Setting.groupSetting;
 
-public class IngestOpennlpPlugin extends Plugin implements IngestPlugin {
+public class IngestOpenNlpPlugin extends Plugin implements IngestPlugin {
 
     public static final Setting<Settings> MODEL_FILE_SETTINGS = groupSetting("ingest.opennlp.model.file.", Setting.Property.NodeScope);
 
@@ -43,9 +43,9 @@ public class IngestOpennlpPlugin extends Plugin implements IngestPlugin {
     @Override
     public Map<String, Processor.Factory> getProcessors(Processor.Parameters parameters) {
         Path configDirectory = parameters.env.configFile().resolve("ingest-opennlp");
-        OpennlpService openNlpService = new OpennlpService(configDirectory, parameters.env.settings());
+        OpenNlpService openNlpService = new OpenNlpService(configDirectory, parameters.env.settings());
         openNlpService.start();
 
-        return Collections.singletonMap(OpennlpProcessor.TYPE, new OpennlpProcessor.Factory(openNlpService));
+        return Collections.singletonMap(OpenNlpProcessor.TYPE, new OpenNlpProcessor.Factory(openNlpService));
     }
 }

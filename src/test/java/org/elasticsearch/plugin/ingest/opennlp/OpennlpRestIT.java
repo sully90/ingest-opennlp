@@ -1,5 +1,5 @@
 /*
- * Copyright [2017] [David Sullivan]
+ * Copyright [2016] [Alexander Reelsen]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,10 +22,9 @@ import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import org.elasticsearch.test.rest.yaml.ClientYamlTestCandidate;
 import org.elasticsearch.test.rest.yaml.ESClientYamlSuiteTestCase;
 
+public class OpenNlpRestIT extends ESClientYamlSuiteTestCase {
 
-public class OpennlpRestIT extends ESClientYamlSuiteTestCase {
-
-    public OpennlpRestIT(@Name("yaml") ClientYamlTestCandidate testCandidate) {
+    public OpenNlpRestIT(@Name("yaml") ClientYamlTestCandidate testCandidate) {
         super(testCandidate);
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright [2017] [David Sullivan]
+ * Copyright [2016] [Alexander Reelsen]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,16 +32,16 @@ import java.util.Set;
 import static org.elasticsearch.ingest.ConfigurationUtils.readOptionalList;
 import static org.elasticsearch.ingest.ConfigurationUtils.readStringProperty;
 
-public class OpennlpProcessor extends AbstractProcessor {
+public class OpenNlpProcessor extends AbstractProcessor {
 
     public static final String TYPE = "opennlp";
 
-    private final OpennlpService openNlpService;
+    private final OpenNlpService openNlpService;
     private final String sourceField;
     private final String targetField;
     private final Set<String> fields;
 
-    OpennlpProcessor(OpennlpService openNlpService, String tag, String sourceField, String targetField, Set<String> fields) throws
+    OpenNlpProcessor(OpenNlpService openNlpService, String tag, String sourceField, String targetField, Set<String> fields) throws
             IOException {
         super(tag);
         this.openNlpService = openNlpService;
@@ -74,20 +74,20 @@ public class OpennlpProcessor extends AbstractProcessor {
 
     public static final class Factory implements Processor.Factory {
 
-        private OpennlpService openNlpService;
+        private OpenNlpService openNlpService;
 
-        public Factory(OpennlpService openNlpService) {
+        public Factory(OpenNlpService openNlpService) {
             this.openNlpService = openNlpService;
         }
 
         @Override
-        public OpennlpProcessor create(Map<String, Processor.Factory> registry, String processorTag, Map<String, Object> config)
+        public OpenNlpProcessor create(Map<String, Processor.Factory> registry, String processorTag, Map<String, Object> config)
                 throws Exception {
             String field = readStringProperty(TYPE, processorTag, config, "field");
             String targetField = readStringProperty(TYPE, processorTag, config, "target_field", "entities");
             List<String> fields = readOptionalList(TYPE, processorTag, config, "fields");
             final Set<String> foundFields = fields == null || fields.size() == 0 ? openNlpService.getModels() : new HashSet<>(fields);
-            return new OpennlpProcessor(openNlpService, processorTag, field, targetField, foundFields);
+            return new OpenNlpProcessor(openNlpService, processorTag, field, targetField, foundFields);
         }
     }
 

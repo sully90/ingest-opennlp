@@ -3,10 +3,10 @@ buildscript {
     mavenLocal()
     mavenCentral()
     jcenter()
-  }
+ }
 
   dependencies {
-    classpath "org.elasticsearch.gradle:build-tools:5.6.3"
+    classpath "org.elasticsearch.gradle:build-tools:6.0.0"
     classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3"
   }
 }
@@ -18,7 +18,7 @@ plugins {
 import de.undercouch.gradle.tasks.download.Download
 
 group = 'org.elasticsearch.plugin.ingest'
-version = '0.0.1-SNAPSHOT'
+version = '6.0.0.1-SNAPSHOT'
 
 apply plugin: 'java'
 apply plugin: 'elasticsearch.esplugin'
@@ -27,32 +27,25 @@ apply plugin: 'maven'
 apply plugin: 'signing'
 apply plugin: 'io.codearte.nexus-staging'
 
-// this is temporal and will be fixed in 6.0
-ext.projectSubstitutions = [:]
-
 // license of this project
 licenseFile = rootProject.file('LICENSE.txt')
 // copyright notices
 noticeFile = rootProject.file('NOTICE.txt')
 
 esplugin {
-  name 'ingest-opennlp'
-  description 'Elasticsearch ingest processor to do named entity extraction using OpenNLP'
-  classname 'org.elasticsearch.plugin.ingest.opennlp.IngestOpennlpPlugin'
   // license of the plugin, may be different than the above license
   licenseFile rootProject.file('LICENSE.txt')
   // copyright notices, may be different than the above notice
   noticeFile rootProject.file('NOTICE.txt')
+  name 'ingest-opennlp'
+  description 'Ingest processor that uses OpenNLP for named entity extraction'
+  classname 'org.elasticsearch.plugin.ingest.opennlp.IngestOpenNlpPlugin'
 }
 
 // In this section you declare the dependencies for your production and test code
-// Note, the two dependencies are not really needed as the buildscript dependency gets them in already
-// they are just here as an example
+// Elasticsearch dependency is included due to the build-tools, test-framework as well
 dependencies {
-  compile 'org.elasticsearch:elasticsearch:5.6.3'
-  compile 'org.apache.opennlp:opennlp-tools:1.8.1'
-
-  testCompile 'org.elasticsearch.test:framework:5.6.3'
+  compile 'org.apache.opennlp:opennlp-tools:1.8.3'
 }
 
 bundlePlugin {
@@ -67,17 +60,17 @@ integTestCluster {
   setting 'ingest.opennlp.model.file.dates',     'en-ner-dates.bin'
 }
 
-// Set to false to not use elasticsearch checkstyle rules
-checkstyleMain.enabled = true
-checkstyleTest.enabled = true
+// check style can be disabled, or you can configure a different checkstyle file
+// checkstyleMain.enabled = false
+// checkstyleTest.enabled = false
 
-// FIXME dependency license check needs to be enabled
+// dependency license check needs can be enabled
 dependencyLicenses.enabled = false
 
-// FIXME thirdparty audit needs to be enabled
+// thirdparty audit needs can be enabled
 thirdPartyAudit.enabled = false
 
-// Uncomment this to skip license header checks
+// license header checks can be disabled
 licenseHeaders.enabled = false
 
 // exlude the models for forbidden API check
@@ -115,10 +108,6 @@ artifacts {
 }
 
 signing {
-    required { gradle.taskGraph.hasTask("uploadArchives") }
     sign configurations.archives
 }
 
-task getHomeDir << {
-    println gradle.gradleHomeDir
-}

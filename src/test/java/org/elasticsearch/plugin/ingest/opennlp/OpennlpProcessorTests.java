@@ -1,3 +1,20 @@
+/*
+ * Copyright [2016] [Alexander Reelsen]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package org.elasticsearch.plugin.ingest.opennlp;
 
 import org.elasticsearch.common.settings.Settings;
@@ -20,9 +37,9 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 
-public class OpennlpProcessorTests extends ESTestCase {
+public class OpenNlpProcessorTests extends ESTestCase {
 
-    private OpennlpService service;
+    private OpenNlpService service;
 
     @Before
     public void createOpenNlpService() throws IOException {
@@ -32,11 +49,11 @@ public class OpennlpProcessorTests extends ESTestCase {
                 .put("ingest.opennlp.model.file.dates", "en-ner-dates.bin")
                 .build();
 
-        service = new OpennlpService(getDataPath("/models/en-ner-persons.bin").getParent(), settings).start();
+        service = new OpenNlpService(getDataPath("/models/en-ner-persons.bin").getParent(), settings).start();
     }
 
     public void testThatExtractionsWork() throws Exception {
-        OpennlpProcessor processor = new OpennlpProcessor(service, randomAlphaOfLength(10), "source_field", "target_field",
+        OpenNlpProcessor processor = new OpenNlpProcessor(service, randomAlphaOfLength(10), "source_field", "target_field",
                 new HashSet<>(Arrays.asList("names", "dates", "locations")));
 
         Map<String, Object> entityData = getIngestDocumentData(processor);
@@ -47,7 +64,7 @@ public class OpennlpProcessorTests extends ESTestCase {
     }
 
     public void testThatFieldsCanBeExcluded() throws Exception {
-        OpennlpProcessor processor = new OpennlpProcessor(service, randomAlphaOfLength(10), "source_field", "target_field",
+        OpenNlpProcessor processor = new OpenNlpProcessor(service, randomAlphaOfLength(10), "source_field", "target_field",
                 new HashSet<>(Arrays.asList("dates")));
 
         Map<String, Object> entityData = getIngestDocumentData(processor);
@@ -58,7 +75,7 @@ public class OpennlpProcessorTests extends ESTestCase {
     }
 
     public void testThatExistingValuesAreMergedWithoutDuplicates() throws Exception {
-        OpennlpProcessor processor = new OpennlpProcessor(service, randomAlphaOfLength(10), "source_field", "target_field",
+        OpenNlpProcessor processor = new OpenNlpProcessor(service, randomAlphaOfLength(10), "source_field", "target_field",
                 new HashSet<>(Arrays.asList("names", "dates", "locations")));
 
         IngestDocument ingestDocument = getIngestDocument();
@@ -84,9 +101,9 @@ public class OpennlpProcessorTests extends ESTestCase {
         config.put("field", "source_field");
         config.put("target_field", "target_field");
 
-        OpennlpProcessor.Factory factory = new OpennlpProcessor.Factory(service);
+        OpenNlpProcessor.Factory factory = new OpenNlpProcessor.Factory(service);
         Map<String, Processor.Factory> registry = Collections.emptyMap();
-        OpennlpProcessor processor = factory.create(registry, randomAlphaOfLength(10), config);
+        OpenNlpProcessor processor = factory.create(registry, randomAlphaOfLength(10), config);
 
         Map<String, Object> entityData = getIngestDocumentData(processor);
 
@@ -96,7 +113,7 @@ public class OpennlpProcessorTests extends ESTestCase {
 
     }
 
-    private Map<String, Object> getIngestDocumentData(OpennlpProcessor processor) throws Exception {
+    private Map<String, Object> getIngestDocumentData(OpenNlpProcessor processor) throws Exception {
         IngestDocument ingestDocument = getIngestDocument();
         processor.execute(ingestDocument);
         return getIngestDocumentData(ingestDocument);
