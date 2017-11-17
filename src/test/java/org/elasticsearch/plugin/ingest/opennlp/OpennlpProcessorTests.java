@@ -47,6 +47,7 @@ public class OpenNlpProcessorTests extends ESTestCase {
                 .put("ingest.opennlp.model.file.names", "en-ner-persons.bin")
                 .put("ingest.opennlp.model.file.locations", "en-ner-locations.bin")
                 .put("ingest.opennlp.model.file.dates", "en-ner-dates.bin")
+                .put("ingest.opennlp.tokenizer.file.sentences", "en-sent.bin")
                 .build();
 
         service = new OpenNlpService(getDataPath("/models/en-ner-persons.bin").getParent(), settings).start();

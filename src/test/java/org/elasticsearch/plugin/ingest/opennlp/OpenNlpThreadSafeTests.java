@@ -45,6 +45,7 @@ public class OpenNlpThreadSafeTests extends ESTestCase {
         super.setUp();
         Settings settings = Settings.builder()
                 .put("ingest.opennlp.model.file.locations", "en-ner-locations.bin")
+                .put("ingest.opennlp.tokenizer.file.sentences", "en-sent.bin")
                 .build();
         service = new OpenNlpService(getDataPath("/models/en-ner-persons.bin").getParent(), settings).start();
         executorService = Executors.newFixedThreadPool(10);

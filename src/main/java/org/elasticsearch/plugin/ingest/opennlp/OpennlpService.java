@@ -19,6 +19,8 @@ package org.elasticsearch.plugin.ingest.opennlp;
 
 import opennlp.tools.namefind.NameFinderME;
 import opennlp.tools.namefind.TokenNameFinderModel;
+import opennlp.tools.sentdetect.SentenceDetectorME;
+import opennlp.tools.sentdetect.SentenceModel;
 import opennlp.tools.tokenize.SimpleTokenizer;
 import opennlp.tools.util.Span;
 import org.apache.logging.log4j.Logger;
@@ -27,6 +29,7 @@ import org.apache.logging.log4j.util.Supplier;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.set.Sets;
 
@@ -34,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -94,12 +98,42 @@ public class OpenNlpService {
                 threadLocal.set(finderModel);
             }
 
-            String[] tokens = SimpleTokenizer.INSTANCE.tokenize(content);
-            Span spans[] = new NameFinderME(finderModel).find(tokens);
-            String[] names = Span.spansToStrings(spans, tokens);
-            return Sets.newHashSet(names);
+            //Instantiating the SentenceDetectorME class
+            SentenceModel sentenceModel = loadSentenceModel();
+            SentenceDetectorME detector = new SentenceDetectorME(sentenceModel);
+
+            //Detecting the sentence
+            String sentences[] = detector.sentDetect(content);
+
+            Set<String> set = new HashSet<>();
+
+            for (String sentence : sentences) {
+
+                String[] tokens = SimpleTokenizer.INSTANCE.tokenize(sentence);
+                Span spans[] = new NameFinderME(finderModel).find(tokens);
+                String[] names = Span.spansToStrings(spans, tokens);
+
+                set.addAll(Sets.newHashSet(names));
+            }
+//            return Sets.newHashSet(names);
+            return set;
         } finally {
             threadLocal.remove();
         }
+    }
+
+    private SentenceModel loadSentenceModel() {
+        String name = "sentences";
+        String modelName = Setting.groupSetting("ingest.opennlp.tokenizer.file.").get(settings).get(name);
+        Path path = configDirectory.resolve(modelName);
+
+        try (InputStream is = Files.newInputStream(path)) {
+            SentenceModel sentenceModel = new SentenceModel(is);
+            return sentenceModel;
+        } catch (IOException e) {
+            logger.error((Supplier<?>) () -> new ParameterizedMessage("Could not load model [{}] with path [{}]", name, path), e);
+        }
+
+        return null;
     }
 }

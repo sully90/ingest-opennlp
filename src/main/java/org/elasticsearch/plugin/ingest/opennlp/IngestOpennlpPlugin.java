@@ -34,10 +34,12 @@ import static org.elasticsearch.common.settings.Setting.groupSetting;
 public class IngestOpenNlpPlugin extends Plugin implements IngestPlugin {
 
     public static final Setting<Settings> MODEL_FILE_SETTINGS = groupSetting("ingest.opennlp.model.file.", Setting.Property.NodeScope);
+    public static final Setting<Settings> SENTENCE_FILE_SETTINGS =
+            groupSetting("ingest.opennlp.tokenizer.file.", Setting.Property.NodeScope);
 
     @Override
     public List<Setting<?>> getSettings() {
-        return Arrays.asList(MODEL_FILE_SETTINGS);
+        return Arrays.asList(MODEL_FILE_SETTINGS, SENTENCE_FILE_SETTINGS);
     }
 
     @Override

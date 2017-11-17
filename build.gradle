@@ -58,6 +58,7 @@ integTestCluster {
   setting 'ingest.opennlp.model.file.names',     'en-ner-persons.bin'
   setting 'ingest.opennlp.model.file.locations', 'en-ner-locations.bin'
   setting 'ingest.opennlp.model.file.dates',     'en-ner-dates.bin'
+  setting 'ingest.opennlp.tokenizer.file.sentences',    'en-sent.bin'
 }
 
 // check style can be disabled, or you can configure a different checkstyle file
@@ -89,6 +90,10 @@ task downloadModels {
     downloadIfNotExists('http://opennlp.sourceforge.net/models-1.5/en-ner-person.bin',   'en-ner-persons.bin')
     downloadIfNotExists('http://opennlp.sourceforge.net/models-1.5/en-ner-location.bin', 'en-ner-locations.bin')
     downloadIfNotExists('http://opennlp.sourceforge.net/models-1.5/en-ner-date.bin',     'en-ner-dates.bin')
+    downloadIfNotExists('http://opennlp.sourceforge.net/models-1.5/en-ner-money.bin',     'en-ner-money.bin')
+    downloadIfNotExists('http://opennlp.sourceforge.net/models-1.5/en-ner-organization.bin',     'en-ner-organization.bin')
+    downloadIfNotExists('http://opennlp.sourceforge.net/models-1.5/en-ner-percentage.bin',     'en-ner-percentage.bin')
+    downloadIfNotExists('http://opennlp.sourceforge.net/models-1.5/en-sent.bin',     'en-sent.bin')
   }
 }
 
