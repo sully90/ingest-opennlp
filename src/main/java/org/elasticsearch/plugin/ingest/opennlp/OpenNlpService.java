@@ -128,7 +128,7 @@ public class OpenNlpService {
         }
     }
 
-    public Set<String> getSentiment(String content) {
+    public String getSentiment(String content) {
         try{
             SentimentModel sentimentModel = loadSentimentModel();
             if (sentimentThreadLocal.get() == null || !sentimentThreadLocal.get().equals(sentimentModel)) {
@@ -136,7 +136,7 @@ public class OpenNlpService {
             }
             SentimentME sentimentME = new SentimentME(sentimentModel);
             String sentiment = toSimpleSentiment(sentimentME.predict(content));
-            return Sets.newHashSet(sentiment);
+            return sentiment;
         } finally {
             sentimentThreadLocal.remove();
         }
