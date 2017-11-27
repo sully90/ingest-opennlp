@@ -35,11 +35,13 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.set.Sets;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -133,9 +135,27 @@ public class OpenNlpService {
                 sentimentThreadLocal.set(sentimentModel);
             }
             SentimentME sentimentME = new SentimentME(sentimentModel);
-            return Sets.newHashSet(sentimentME.predict(content));
+            String sentiment = toSimpleSentiment(sentimentME.predict(content));
+            return Sets.newHashSet(sentiment);
         } finally {
             sentimentThreadLocal.remove();
+        }
+    }
+
+    private static String toSimpleSentiment(String rawSentiment) {
+        switch (rawSentiment.toLowerCase(Locale.UK)) {
+            case "angry":
+                return "Very negative";
+            case "sad":
+                return "Negative";
+            case "neutral":
+                return "Neutral";
+            case "like":
+                return "Positive";
+            case "love":
+                return "Very positive";
+            default:
+                return "";
         }
     }
 
@@ -168,19 +188,4 @@ public class OpenNlpService {
 
         return null;
     }
-
-//    public static void main(String[] args) {
-//        String content = "The world is a good place";
-//        String fname = "/Users/sullid/idea/ingest-opennlp/src/test/resources/models/en-stanford-sentiment.bin";
-//
-//        SentimentModel sentimentModel = null;
-//        try {
-//            sentimentModel = new SentimentModel(new File(fname));
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//
-//        SentimentME sentimentME = new SentimentME(sentimentModel);
-//        System.out.println(sentimentME.predict(content));
-//    }
 }
