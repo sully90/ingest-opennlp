@@ -21,6 +21,8 @@ import opennlp.tools.namefind.NameFinderME;
 import opennlp.tools.namefind.TokenNameFinderModel;
 import opennlp.tools.sentdetect.SentenceDetectorME;
 import opennlp.tools.sentdetect.SentenceModel;
+import opennlp.tools.sentiment.SentimentME;
+import opennlp.tools.sentiment.SentimentModel;
 import opennlp.tools.tokenize.SimpleTokenizer;
 import opennlp.tools.util.Span;
 import org.apache.logging.log4j.Logger;
@@ -51,7 +53,9 @@ public class OpenNlpService {
     private final Logger logger;
     private Settings settings;
 
-    private ThreadLocal<TokenNameFinderModel> threadLocal = new ThreadLocal<>();
+    private ThreadLocal<TokenNameFinderModel> nerThreadLocal = new ThreadLocal<>();
+    private ThreadLocal<SentimentModel> sentimentThreadLocal = new ThreadLocal<>();
+
     private Map<String, TokenNameFinderModel> nameFinderModels = new ConcurrentHashMap<>();
 
     public OpenNlpService(Path configDirectory, Settings settings) {
@@ -93,9 +97,9 @@ public class OpenNlpService {
             if (!nameFinderModels.containsKey(field)) {
                 throw new ElasticsearchException("Could not find field [{}], possible values {}", field, nameFinderModels.keySet());
             }
-            TokenNameFinderModel finderModel= nameFinderModels.get(field);
-            if (threadLocal.get() == null || !threadLocal.get().equals(finderModel)) {
-                threadLocal.set(finderModel);
+            TokenNameFinderModel finderModel = nameFinderModels.get(field);
+            if (nerThreadLocal.get() == null || !nerThreadLocal.get().equals(finderModel)) {
+                nerThreadLocal.set(finderModel);
             }
 
             //Instantiating the SentenceDetectorME class
@@ -118,8 +122,36 @@ public class OpenNlpService {
 //            return Sets.newHashSet(names);
             return set;
         } finally {
-            threadLocal.remove();
+            nerThreadLocal.remove();
         }
+    }
+
+    public Set<String> getSentiment(String content) {
+        try{
+            SentimentModel sentimentModel = loadSentimentModel();
+            if (sentimentThreadLocal.get() == null || !sentimentThreadLocal.get().equals(sentimentModel)) {
+                sentimentThreadLocal.set(sentimentModel);
+            }
+            SentimentME sentimentME = new SentimentME(sentimentModel);
+            return Sets.newHashSet(sentimentME.predict(content));
+        } finally {
+            sentimentThreadLocal.remove();
+        }
+    }
+
+    private SentimentModel loadSentimentModel() {
+        String name = "sentiment";
+        String modelName = Setting.groupSetting("ingest.opennlp.misc.file.").get(settings).get(name);
+        Path path = configDirectory.resolve(modelName);
+
+        try {
+            SentimentModel sentimentModel = new SentimentModel(path.toUri().toURL());
+            return sentimentModel;
+        } catch (IOException e) {
+            logger.error((Supplier<?>) () -> new ParameterizedMessage("Could not load model [{}] with path [{}]", name, path), e);
+        }
+
+        return null;
     }
 
     private SentenceModel loadSentenceModel() {
@@ -136,4 +168,19 @@ public class OpenNlpService {
 
         return null;
     }
+
+//    public static void main(String[] args) {
+//        String content = "The world is a good place";
+//        String fname = "/Users/sullid/idea/ingest-opennlp/src/test/resources/models/en-stanford-sentiment.bin";
+//
+//        SentimentModel sentimentModel = null;
+//        try {
+//            sentimentModel = new SentimentModel(new File(fname));
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//
+//        SentimentME sentimentME = new SentimentME(sentimentModel);
+//        System.out.println(sentimentME.predict(content));
+//    }
 }

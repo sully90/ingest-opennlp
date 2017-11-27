@@ -63,6 +63,10 @@ public class OpenNlpProcessor extends AbstractProcessor {
                 merge(entities, field, data);
             }
 
+            // Sentiment
+            Set<String> sentiment = openNlpService.getSentiment(content);
+            merge(entities, "sentiment", sentiment);
+
             ingestDocument.setFieldValue(targetField, entities);
         }
     }

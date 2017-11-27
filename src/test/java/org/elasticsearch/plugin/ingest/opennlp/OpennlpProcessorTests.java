@@ -48,6 +48,7 @@ public class OpenNlpProcessorTests extends ESTestCase {
                 .put("ingest.opennlp.model.file.locations", "en-ner-locations.bin")
                 .put("ingest.opennlp.model.file.dates", "en-ner-dates.bin")
                 .put("ingest.opennlp.tokenizer.file.sentences", "en-sent.bin")
+                .put("ingest.opennlp.misc.file.sentiment", "en-stanford-sentiment.bin")
                 .build();
 
         service = new OpenNlpService(getDataPath("/models/en-ner-persons.bin").getParent(), settings).start();
@@ -62,6 +63,7 @@ public class OpenNlpProcessorTests extends ESTestCase {
         assertThatHasElements(entityData, "names", "Kobe Bryant", "Michael Jordan");
         assertThatHasElements(entityData, "dates", "Yesterday");
         assertThatHasElements(entityData, "locations", "Munich", "New York");
+        assertThatHasElements(entityData, "sentiment", "like");
     }
 
     public void testThatFieldsCanBeExcluded() throws Exception {
@@ -73,6 +75,7 @@ public class OpenNlpProcessorTests extends ESTestCase {
         assertThat(entityData, not(hasKey("locations")));
         assertThat(entityData, not(hasKey("names")));
         assertThatHasElements(entityData, "dates", "Yesterday");
+        assertThatHasElements(entityData, "sentiment", "like");
     }
 
     public void testThatExistingValuesAreMergedWithoutDuplicates() throws Exception {
@@ -85,6 +88,7 @@ public class OpenNlpProcessorTests extends ESTestCase {
         entityData.put("names", Arrays.asList("Magic Johnson", "Kobe Bryant"));
         entityData.put("locations", Arrays.asList("Paris", "Munich"));
         entityData.put("dates", Arrays.asList("Today", "Yesterday"));
+        entityData.put("sentiment", Arrays.asList("like"));
 
         ingestDocument.setFieldValue("target_field", entityData);
 
@@ -95,6 +99,7 @@ public class OpenNlpProcessorTests extends ESTestCase {
         assertThatHasElements(entityData, "names", "Magic Johnson", "Kobe Bryant", "Michael Jordan");
         assertThatHasElements(entityData, "dates", "Today", "Yesterday");
         assertThatHasElements(entityData, "locations", "Paris", "Munich", "New York");
+        assertThatHasElements(entityData, "sentiment", "like");
     }
 
     public void testConstructorNoFieldsSpecified() throws Exception {
@@ -111,6 +116,7 @@ public class OpenNlpProcessorTests extends ESTestCase {
         assertThatHasElements(entityData, "names", "Kobe Bryant", "Michael Jordan");
         assertThatHasElements(entityData, "dates", "Yesterday");
         assertThatHasElements(entityData, "locations", "Munich", "New York");
+        assertThatHasElements(entityData, "sentiment", "like");
 
     }
 
