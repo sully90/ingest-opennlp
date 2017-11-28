@@ -35,7 +35,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.set.Sets;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -59,6 +58,7 @@ public class OpenNlpService {
     private ThreadLocal<SentimentModel> sentimentThreadLocal = new ThreadLocal<>();
 
     private Map<String, TokenNameFinderModel> nameFinderModels = new ConcurrentHashMap<>();
+    private SentimentModel sentimentModel;
 
     public OpenNlpService(Path configDirectory, Settings settings) {
         this.logger = Loggers.getLogger(getClass(), settings);
@@ -89,6 +89,10 @@ public class OpenNlpService {
             logger.error("Did not load any models for ingest-opennlp plugin, none configured");
         } else {
             logger.info("Read models in [{}] for {}", sw.totalTime(), settingsMap.keySet());
+        }
+
+        if (this.sentimentModelEnabled()) {
+            this.sentimentModel = loadSentimentModel();
         }
 
         return this;
@@ -129,8 +133,11 @@ public class OpenNlpService {
     }
 
     public String getSentiment(String content) {
+        if (!this.sentimentModelEnabled()) {
+            throw new RuntimeException("Sentiment model not enabled.");
+        }
         try{
-            SentimentModel sentimentModel = loadSentimentModel();
+            SentimentModel sentimentModel = this.sentimentModel;
             if (sentimentThreadLocal.get() == null || !sentimentThreadLocal.get().equals(sentimentModel)) {
                 sentimentThreadLocal.set(sentimentModel);
             }
@@ -159,16 +166,25 @@ public class OpenNlpService {
         }
     }
 
-    private SentimentModel loadSentimentModel() {
-        String name = "sentiment";
-        String modelName = Setting.groupSetting("ingest.opennlp.misc.file.").get(settings).get(name);
-        Path path = configDirectory.resolve(modelName);
+    public boolean sentimentModelEnabled() {
+        return Setting.groupSetting("ingest.opennlp.misc.file.").exists(settings);
+    }
 
-        try {
-            SentimentModel sentimentModel = new SentimentModel(path.toUri().toURL());
-            return sentimentModel;
-        } catch (IOException e) {
-            logger.error((Supplier<?>) () -> new ParameterizedMessage("Could not load model [{}] with path [{}]", name, path), e);
+    private SentimentModel loadSentimentModel() {
+
+        if (this.sentimentModelEnabled()) {
+
+            String name = "sentiment";
+            String modelName = Setting.groupSetting("ingest.opennlp.misc.file.").get(settings).get(name);
+
+            Path path = configDirectory.resolve(modelName);
+
+            try {
+                SentimentModel sentimentModel = new SentimentModel(path.toUri().toURL());
+                return sentimentModel;
+            } catch (IOException e) {
+                logger.error((Supplier<?>) () -> new ParameterizedMessage("Could not load sentiment model"), e);
+            }
         }
 
         return null;
