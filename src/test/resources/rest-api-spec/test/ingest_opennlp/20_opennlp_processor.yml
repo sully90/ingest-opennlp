@@ -9,7 +9,7 @@
             "processors": [
               {
                 "opennlp" : {
-                  "field" : "field1"
+                  "field" : ["field1"]
                 }
               }
             ]
@@ -46,7 +46,7 @@
             "processors": [
               {
                 "opennlp" : {
-                  "field" : "field1",
+                  "field" : ["field1"],
                   "fields": [ "locations" ]
                 }
               }

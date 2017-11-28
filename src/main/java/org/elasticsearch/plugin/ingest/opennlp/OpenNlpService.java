@@ -204,4 +204,8 @@ public class OpenNlpService {
 
         return null;
     }
+
+    public Settings getSettings() {
+        return settings;
+    }
 }

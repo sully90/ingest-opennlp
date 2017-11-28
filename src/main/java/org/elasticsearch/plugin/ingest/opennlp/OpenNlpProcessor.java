@@ -17,7 +17,9 @@
 
 package org.elasticsearch.plugin.ingest.opennlp;
 
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.ingest.AbstractProcessor;
 import org.elasticsearch.ingest.IngestDocument;
 import org.elasticsearch.ingest.Processor;
@@ -29,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.elasticsearch.ingest.ConfigurationUtils.readList;
 import static org.elasticsearch.ingest.ConfigurationUtils.readOptionalList;
 import static org.elasticsearch.ingest.ConfigurationUtils.readStringProperty;
 
@@ -37,38 +40,40 @@ public class OpenNlpProcessor extends AbstractProcessor {
     public static final String TYPE = "opennlp";
 
     private final OpenNlpService openNlpService;
-    private final String sourceField;
+    private final List<String> sourceFields;
     private final String targetField;
     private final Set<String> fields;
 
-    OpenNlpProcessor(OpenNlpService openNlpService, String tag, String sourceField, String targetField, Set<String> fields) throws
+    OpenNlpProcessor(OpenNlpService openNlpService, String tag, List<String> sourceFields, String targetField, Set<String> fields) throws
             IOException {
         super(tag);
         this.openNlpService = openNlpService;
-        this.sourceField = sourceField;
+        this.sourceFields = sourceFields;
         this.targetField = targetField;
         this.fields = fields;
     }
 
     @Override
     public void execute(IngestDocument ingestDocument) throws Exception {
-        String content = ingestDocument.getFieldValue(sourceField, String.class);
+        for (String sourceField : this.sourceFields) {
+            String content = ingestDocument.getFieldValue(sourceField, String.class);
 
-        if (Strings.hasLength(content)) {
-            Map<String, Set<String>> entities = new HashMap<>();
-            mergeExisting(entities, ingestDocument, targetField);
+            if (Strings.hasLength(content)) {
+                Map<String, Set<String>> entities = new HashMap<>();
+                mergeExisting(entities, ingestDocument, targetField);
 
-            for (String field : fields) {
-                Set<String> data = openNlpService.find(content, field);
-                merge(entities, field, data);
-            }
+                for (String field : fields) {
+                    Set<String> data = openNlpService.find(content, field);
+                    merge(entities, field, data);
+                }
 
-            ingestDocument.setFieldValue(targetField, entities);
+                ingestDocument.setFieldValue(targetField, entities);
 
-            if (this.openNlpService.sentimentModelEnabled()) {
-                // Sentiment
-                String sentiment = openNlpService.getSentiment(content);
-                ingestDocument.setFieldValue("opennlp.sentiment", sentiment);
+                if (this.openNlpService.sentimentModelEnabled()) {
+                    // Sentiment
+                    String sentiment = openNlpService.getSentiment(content);
+                    ingestDocument.setFieldValue("opennlp.sentiment", sentiment);
+                }
             }
         }
     }
@@ -80,20 +85,27 @@ public class OpenNlpProcessor extends AbstractProcessor {
 
     public static final class Factory implements Processor.Factory {
 
+        private final Logger logger;
+
         private OpenNlpService openNlpService;
 
         public Factory(OpenNlpService openNlpService) {
             this.openNlpService = openNlpService;
+            this.logger = Loggers.getLogger(getClass(), openNlpService.getSettings());
         }
 
         @Override
         public OpenNlpProcessor create(Map<String, Processor.Factory> registry, String processorTag, Map<String, Object> config)
                 throws Exception {
-            String field = readStringProperty(TYPE, processorTag, config, "field");
+//            String field = readStringProperty(TYPE, processorTag, config, "field");
+            logger.info("processorTag: {}", processorTag);
+            logger.info("config: {}", config);
+            List<String> documentFields = readList(TYPE, processorTag, config, "field");
+            logger.info("documentFields: {}", documentFields);
             String targetField = readStringProperty(TYPE, processorTag, config, "target_field", "entities");
             List<String> fields = readOptionalList(TYPE, processorTag, config, "fields");
             final Set<String> foundFields = fields == null || fields.size() == 0 ? openNlpService.getModels() : new HashSet<>(fields);
-            return new OpenNlpProcessor(openNlpService, processorTag, field, targetField, foundFields);
+            return new OpenNlpProcessor(openNlpService, processorTag, documentFields, targetField, foundFields);
         }
     }
 

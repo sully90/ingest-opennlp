@@ -25,10 +25,12 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -40,6 +42,14 @@ import static org.hamcrest.Matchers.not;
 public class OpenNlpProcessorTests extends ESTestCase {
 
     private OpenNlpService service;
+
+    private static final List<String> sourceFields;
+
+    static {
+        sourceFields = new ArrayList<String>() {{
+           add("source_field");
+        }};
+    }
 
     @Before
     public void createOpenNlpService() throws IOException {
@@ -55,7 +65,7 @@ public class OpenNlpProcessorTests extends ESTestCase {
     }
 
     public void testThatExtractionsWork() throws Exception {
-        OpenNlpProcessor processor = new OpenNlpProcessor(service, randomAlphaOfLength(10), "source_field", "target_field",
+        OpenNlpProcessor processor = new OpenNlpProcessor(service, randomAlphaOfLength(10), sourceFields, "target_field",
                 new HashSet<>(Arrays.asList("names", "dates", "locations")));
 
         Map<String, Object> entityData = getIngestDocumentData(processor);
@@ -66,7 +76,7 @@ public class OpenNlpProcessorTests extends ESTestCase {
     }
 
     public void testThatFieldsCanBeExcluded() throws Exception {
-        OpenNlpProcessor processor = new OpenNlpProcessor(service, randomAlphaOfLength(10), "source_field", "target_field",
+        OpenNlpProcessor processor = new OpenNlpProcessor(service, randomAlphaOfLength(10), sourceFields, "target_field",
                 new HashSet<>(Arrays.asList("dates")));
 
         Map<String, Object> entityData = getIngestDocumentData(processor);
@@ -77,7 +87,7 @@ public class OpenNlpProcessorTests extends ESTestCase {
     }
 
     public void testThatExistingValuesAreMergedWithoutDuplicates() throws Exception {
-        OpenNlpProcessor processor = new OpenNlpProcessor(service, randomAlphaOfLength(10), "source_field", "target_field",
+        OpenNlpProcessor processor = new OpenNlpProcessor(service, randomAlphaOfLength(10), sourceFields, "target_field",
                 new HashSet<>(Arrays.asList("names", "dates", "locations")));
 
         IngestDocument ingestDocument = getIngestDocument();
@@ -100,7 +110,7 @@ public class OpenNlpProcessorTests extends ESTestCase {
 
     public void testConstructorNoFieldsSpecified() throws Exception {
         Map<String, Object> config = new HashMap<>();
-        config.put("field", "source_field");
+        config.put("field", sourceFields);
         config.put("target_field", "target_field");
 
         OpenNlpProcessor.Factory factory = new OpenNlpProcessor.Factory(service);
