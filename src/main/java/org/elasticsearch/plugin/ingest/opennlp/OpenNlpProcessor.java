@@ -55,11 +55,12 @@ public class OpenNlpProcessor extends AbstractProcessor {
 
     @Override
     public void execute(IngestDocument ingestDocument) throws Exception {
+        Map<String, Set<String>> entities = new HashMap<>();
+        Map<String, String> sentimentMapping = new HashMap<>();
         for (String sourceField : this.sourceFields) {
             String content = ingestDocument.getFieldValue(sourceField, String.class);
 
             if (Strings.hasLength(content)) {
-                Map<String, Set<String>> entities = new HashMap<>();
                 mergeExisting(entities, ingestDocument, targetField);
 
                 for (String field : fields) {
@@ -67,14 +68,17 @@ public class OpenNlpProcessor extends AbstractProcessor {
                     merge(entities, field, data);
                 }
 
-                ingestDocument.setFieldValue(targetField, entities);
-
                 if (this.openNlpService.sentimentModelEnabled()) {
                     // Sentiment
                     String sentiment = openNlpService.getSentiment(content);
-                    ingestDocument.setFieldValue("opennlp.sentiment", sentiment);
+                    sentimentMapping.put(sourceField, sentiment);
                 }
             }
+        }
+        ingestDocument.setFieldValue(targetField, entities);
+
+        if (this.openNlpService.sentimentModelEnabled()) {
+            ingestDocument.setFieldValue("opennlp.sentiment", sentimentMapping);
         }
     }
 
