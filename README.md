@@ -3,6 +3,11 @@
 Based on the work of Alexaner Reelsen.
 Copyright 2016-2017 Alexander Reelsen https://github.com/spinscale/elasticsearch-ingest-opennlp
 
+Note, for Elasticsearch 5.6.4 (this branch), build with:
+```
+./gradlew clean check
+```
+
 ## Usage
 
 This is how you configure a pipeline with support for opennlp
