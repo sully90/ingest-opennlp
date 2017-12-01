@@ -58,24 +58,26 @@ public class OpenNlpProcessor extends AbstractProcessor {
         Map<String, Set<String>> entities = new HashMap<>();
         Map<String, String> sentimentMapping = new HashMap<>();
         for (String sourceField : this.sourceFields) {
-            String content = ingestDocument.getFieldValue(sourceField, String.class);
+            if (ingestDocument.hasField(sourceField)) {
+                String content = ingestDocument.getFieldValue(sourceField, String.class);
 
-            if (Strings.hasLength(content)) {
-                mergeExisting(entities, ingestDocument, targetField);
+                if (Strings.hasLength(content)) {
+                    mergeExisting(entities, ingestDocument, targetField);
 
-                for (String field : fields) {
-                    Set<String> data = openNlpService.find(content, field);
-                    merge(entities, field, data);
-                }
+                    for (String field : fields) {
+                        Set<String> data = openNlpService.find(content, field);
+                        merge(entities, field, data);
+                    }
 
-                if (this.openNlpService.sentimentModelEnabled()) {
-                    // Sentiment
-                    String sentiment = openNlpService.getSentiment(content);
-                    sentimentMapping.put(sourceField, sentiment);
+                    if (this.openNlpService.sentimentModelEnabled()) {
+                        // Sentiment
+                        String sentiment = openNlpService.getSentiment(content);
+                        sentimentMapping.put(sourceField, sentiment);
+                    }
                 }
             }
+            ingestDocument.setFieldValue(targetField, entities);
         }
-        ingestDocument.setFieldValue(targetField, entities);
 
         if (this.openNlpService.sentimentModelEnabled()) {
             ingestDocument.setFieldValue("opennlp.sentiment", sentimentMapping);
