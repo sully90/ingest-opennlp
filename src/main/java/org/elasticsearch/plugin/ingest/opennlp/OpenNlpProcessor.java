@@ -32,7 +32,6 @@ import static org.elasticsearch.ingest.ConfigurationUtils.*;
 public class OpenNlpProcessor extends AbstractProcessor {
 
     public static final String TYPE = "opennlp";
-    private static final String BRACKET_REGEX = "\\p{P}";
 
     private final OpenNlpService openNlpService;
     private final List<String> sourceFields;
@@ -69,7 +68,6 @@ public class OpenNlpProcessor extends AbstractProcessor {
                             String content = valueMap.get(baseValueField);
 
                             if (Strings.hasLength(content)) {
-                                content = content.replaceAll(BRACKET_REGEX, "");
                                 mergeExisting(entities, ingestDocument, targetField);
 
                                 for (String field : fields) {
@@ -96,7 +94,6 @@ public class OpenNlpProcessor extends AbstractProcessor {
                 String content = ingestDocument.getFieldValue(sourceField, String.class);
 
                 if (Strings.hasLength(content)) {
-                    content = content.replaceAll(BRACKET_REGEX, "");
                     mergeExisting(entities, ingestDocument, targetField);
 
                     for (String field : fields) {
