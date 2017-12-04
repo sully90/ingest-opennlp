@@ -25,19 +25,14 @@ import org.elasticsearch.ingest.IngestDocument;
 import org.elasticsearch.ingest.Processor;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static org.elasticsearch.ingest.ConfigurationUtils.readList;
-import static org.elasticsearch.ingest.ConfigurationUtils.readOptionalList;
-import static org.elasticsearch.ingest.ConfigurationUtils.readStringProperty;
+import static org.elasticsearch.ingest.ConfigurationUtils.*;
 
 public class OpenNlpProcessor extends AbstractProcessor {
 
     public static final String TYPE = "opennlp";
+    private static final String BRACKET_REGEX = "\\p{P}";
 
     private final OpenNlpService openNlpService;
     private final List<String> sourceFields;
@@ -53,15 +48,55 @@ public class OpenNlpProcessor extends AbstractProcessor {
         this.fields = fields;
     }
 
+    @SuppressWarnings("unchecked")
+    /**
+     * Handles nested fields if needed. Requires the base field contain a list of key value pair objects, which can be
+     * converted to a Map<String, String>.
+     * Delimiter is '.'
+     */
+    private void handleNestedContent(IngestDocument ingestDocument, String sourceField, Map<String, Set<String>> entities) {
+        String[] elems = sourceField.split("\\.");
+        if (elems.length > 0) {
+            String baseSourceField = elems[0];
+            String baseValueField = elems[1];
+            if (ingestDocument.hasField(baseSourceField)) {
+                Object value = ingestDocument.getFieldValue(baseSourceField, Object.class);
+                if (value instanceof List) {
+                    List<Object> objects = (List<Object>) value;
+                    for (Object obj : objects) {
+                        if (obj instanceof Map) {
+                            Map<String, String> valueMap = (Map<String, String>) obj;
+                            String content = valueMap.get(baseValueField);
+
+                            if (Strings.hasLength(content)) {
+                                content = content.replaceAll(BRACKET_REGEX, "");
+                                mergeExisting(entities, ingestDocument, targetField);
+
+                                for (String field : fields) {
+                                    Set<String> data = openNlpService.find(content, field);
+                                    merge(entities, field, data);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @Override
     public void execute(IngestDocument ingestDocument) throws Exception {
         Map<String, Set<String>> entities = new HashMap<>();
         Map<String, String> sentimentMapping = new HashMap<>();
         for (String sourceField : this.sourceFields) {
-            if (ingestDocument.hasField(sourceField)) {
+            if (sourceField.contains(".")) {
+                this.handleNestedContent(ingestDocument, sourceField, entities);
+            }
+            else if (ingestDocument.hasField(sourceField)) {
                 String content = ingestDocument.getFieldValue(sourceField, String.class);
 
                 if (Strings.hasLength(content)) {
+                    content = content.replaceAll(BRACKET_REGEX, "");
                     mergeExisting(entities, ingestDocument, targetField);
 
                     for (String field : fields) {
