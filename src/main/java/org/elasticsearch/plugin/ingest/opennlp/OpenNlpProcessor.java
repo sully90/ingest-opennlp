@@ -25,14 +25,21 @@ import org.elasticsearch.ingest.IngestDocument;
 import org.elasticsearch.ingest.Processor;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import static org.elasticsearch.ingest.ConfigurationUtils.*;
+import static org.elasticsearch.ingest.ConfigurationUtils.readList;
+import static org.elasticsearch.ingest.ConfigurationUtils.readOptionalList;
+import static org.elasticsearch.ingest.ConfigurationUtils.readStringProperty;
 
 public class OpenNlpProcessor extends AbstractProcessor {
 
     public static final String TYPE = "opennlp";
 
+    private final Logger logger;
     private final OpenNlpService openNlpService;
     private final List<String> sourceFields;
     private final String targetField;
@@ -45,6 +52,19 @@ public class OpenNlpProcessor extends AbstractProcessor {
         this.sourceFields = sourceFields;
         this.targetField = targetField;
         this.fields = fields;
+        this.logger = Loggers.getLogger(getClass(), openNlpService.getSettings());
+    }
+
+    private void mergeValue(IngestDocument ingestDocument, String content, Map<String, Set<String>> entities, String ingestField) {
+        if (this.logger.isDebugEnabled()) this.logger.debug("Merging field {}", ingestField);
+        if (Strings.hasLength(content)) {
+            mergeExisting(entities, ingestDocument, targetField);
+
+            for (String field : fields) {
+                Set<String> data = openNlpService.find(content, field);
+                merge(entities, field, data);
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -66,17 +86,13 @@ public class OpenNlpProcessor extends AbstractProcessor {
                         if (obj instanceof Map) {
                             Map<String, String> valueMap = (Map<String, String>) obj;
                             String content = valueMap.get(baseValueField);
-
-                            if (Strings.hasLength(content)) {
-                                mergeExisting(entities, ingestDocument, targetField);
-
-                                for (String field : fields) {
-                                    Set<String> data = openNlpService.find(content, field);
-                                    merge(entities, field, data);
-                                }
-                            }
+                            mergeValue(ingestDocument, content, entities, baseValueField);
                         }
                     }
+                } else if (value instanceof Map) {
+                    Map<String, String> valueMap = (Map<String, String>) value;
+                    String content = valueMap.get(baseValueField);
+                    mergeValue(ingestDocument, content, entities, baseValueField);
                 }
             }
         }
