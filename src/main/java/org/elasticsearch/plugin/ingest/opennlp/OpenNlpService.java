@@ -98,6 +98,14 @@ public class OpenNlpService {
         return this;
     }
 
+    private String[] getNames(String content, NameFinderME nameFinderME) {
+        String[] tokens = SimpleTokenizer.INSTANCE.tokenize(content);
+        Span spans[] = nameFinderME.find(tokens);
+        String[] names = Span.spansToStrings(spans, tokens);
+
+        return names;
+    }
+
     public Set<String> find(String content, String field) {
         try {
             if (!nameFinderModels.containsKey(field)) {
@@ -107,23 +115,24 @@ public class OpenNlpService {
             if (nerThreadLocal.get() == null || !nerThreadLocal.get().equals(finderModel)) {
                 nerThreadLocal.set(finderModel);
             }
-
-            //Instantiating the SentenceDetectorME class
-            SentenceModel sentenceModel = loadSentenceModel();
-            SentenceDetectorME detector = new SentenceDetectorME(sentenceModel);
-
-            //Detecting the sentence
-            String sentences[] = detector.sentDetect(content);
+            NameFinderME nameFinderME = new NameFinderME(finderModel);
 
             Set<String> set = new HashSet<>();
 
-            for (String sentence : sentences) {
+            //Instantiating the SentenceDetectorME class
+            SentenceModel sentenceModel = loadSentenceModel();
 
-                String[] tokens = SimpleTokenizer.INSTANCE.tokenize(sentence);
-                Span spans[] = new NameFinderME(finderModel).find(tokens);
-                String[] names = Span.spansToStrings(spans, tokens);
+            if (sentenceModel == null) {
+                set.addAll(Sets.newHashSet(this.getNames(content, nameFinderME)));
+            } else {
+                SentenceDetectorME detector = new SentenceDetectorME(sentenceModel);
 
-                set.addAll(Sets.newHashSet(names));
+                //Detecting the sentence
+                String sentences[] = detector.sentDetect(content);
+
+                for (String sentence : sentences) {
+                    set.addAll(Sets.newHashSet(this.getNames(sentence, nameFinderME)));
+                }
             }
 //            return Sets.newHashSet(names);
             return set;
