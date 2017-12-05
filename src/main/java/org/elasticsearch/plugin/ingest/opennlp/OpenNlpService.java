@@ -56,9 +56,11 @@ public class OpenNlpService {
 
     private ThreadLocal<TokenNameFinderModel> nerThreadLocal = new ThreadLocal<>();
     private ThreadLocal<SentimentModel> sentimentThreadLocal = new ThreadLocal<>();
+    private ThreadLocal<SentenceModel> sentenceThreadLocal = new ThreadLocal<>();
 
     private Map<String, TokenNameFinderModel> nameFinderModels = new ConcurrentHashMap<>();
     private SentimentModel sentimentModel;
+    private SentenceModel sentenceModel;
 
     public OpenNlpService(Path configDirectory, Settings settings) {
         this.logger = Loggers.getLogger(getClass(), settings);
@@ -91,8 +93,12 @@ public class OpenNlpService {
             logger.info("Read models in [{}] for {}", sw.totalTime(), settingsMap.keySet());
         }
 
-        if (this.sentimentModelEnabled()) {
+        if (this.miscGroupExists()) {
             this.sentimentModel = loadSentimentModel();
+        }
+
+        if (this.tokenizerGroupExists()) {
+            this.sentenceModel = loadSentenceModel();
         }
 
         return this;
@@ -119,13 +125,13 @@ public class OpenNlpService {
 
             Set<String> set = new HashSet<>();
 
-            //Instantiating the SentenceDetectorME class
-            SentenceModel sentenceModel = loadSentenceModel();
-
-            if (sentenceModel == null) {
+            if (this.sentenceModel == null) {
                 set.addAll(Sets.newHashSet(this.getNames(content, nameFinderME)));
             } else {
-                SentenceDetectorME detector = new SentenceDetectorME(sentenceModel);
+                if (sentenceThreadLocal.get() == null || !sentenceThreadLocal.get().equals(this.sentenceModel)) {
+                    sentenceThreadLocal.set(this.sentenceModel);
+                }
+                SentenceDetectorME detector = new SentenceDetectorME(this.sentenceModel);
 
                 //Detecting the sentence
                 String sentences[] = detector.sentDetect(content);
@@ -138,11 +144,14 @@ public class OpenNlpService {
             return set;
         } finally {
             nerThreadLocal.remove();
+            if (sentenceThreadLocal.get() != null) {
+                this.sentenceThreadLocal.remove();
+            }
         }
     }
 
     public String getSentiment(String content) {
-        if (!this.sentimentModelEnabled()) {
+        if (!this.miscGroupExists()) {
             throw new RuntimeException("Sentiment model not enabled.");
         }
         try{
@@ -175,13 +184,17 @@ public class OpenNlpService {
         }
     }
 
-    public boolean sentimentModelEnabled() {
+    public boolean miscGroupExists() {
         return Setting.groupSetting("ingest.opennlp.misc.file.").exists(settings);
+    }
+
+    public boolean tokenizerGroupExists() {
+        return Setting.groupSetting("ingest.opennlp.tokenizer.file.").exists(settings);
     }
 
     private SentimentModel loadSentimentModel() {
 
-        if (this.sentimentModelEnabled()) {
+        if (this.miscGroupExists()) {
 
             String name = "sentiment";
             String modelName = Setting.groupSetting("ingest.opennlp.misc.file.").get(settings).get(name);
@@ -200,15 +213,20 @@ public class OpenNlpService {
     }
 
     private SentenceModel loadSentenceModel() {
-        String name = "sentences";
-        String modelName = Setting.groupSetting("ingest.opennlp.tokenizer.file.").get(settings).get(name);
-        Path path = configDirectory.resolve(modelName);
 
-        try (InputStream is = Files.newInputStream(path)) {
-            SentenceModel sentenceModel = new SentenceModel(is);
-            return sentenceModel;
-        } catch (IOException e) {
-            logger.error((Supplier<?>) () -> new ParameterizedMessage("Could not load model [{}] with path [{}]", name, path), e);
+        if (this.tokenizerGroupExists()) {
+
+            String name = "sentences";
+            String modelName = Setting.groupSetting("ingest.opennlp.tokenizer.file.").get(settings).get(name);
+            Path path = configDirectory.resolve(modelName);
+
+            try (InputStream is = Files.newInputStream(path)) {
+                SentenceModel sentenceModel = new SentenceModel(is);
+                return sentenceModel;
+            } catch (IOException e) {
+                logger.error((Supplier<?>) () -> new ParameterizedMessage("Could not load model [{}] with path [{}]", name, path), e);
+            }
+
         }
 
         return null;

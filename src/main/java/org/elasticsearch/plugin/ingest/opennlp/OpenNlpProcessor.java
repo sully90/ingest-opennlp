@@ -117,7 +117,7 @@ public class OpenNlpProcessor extends AbstractProcessor {
                         merge(entities, field, data);
                     }
 
-                    if (this.openNlpService.sentimentModelEnabled()) {
+                    if (this.openNlpService.miscGroupExists()) {
                         // Sentiment
                         String sentiment = openNlpService.getSentiment(content);
                         sentimentMapping.put(sourceField, sentiment);
@@ -127,7 +127,7 @@ public class OpenNlpProcessor extends AbstractProcessor {
             ingestDocument.setFieldValue(targetField, entities);
         }
 
-        if (this.openNlpService.sentimentModelEnabled()) {
+        if (this.openNlpService.miscGroupExists()) {
             ingestDocument.setFieldValue("opennlp.sentiment", sentimentMapping);
         }
     }
